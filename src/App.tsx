@@ -9,11 +9,17 @@ import {
   RotateCw,
   X,
   Maximize2,
-  ExternalLink
+  ExternalLink,
+  LayoutGrid,
+  Layers
 } from 'lucide-react';
 import DeviceFrame from './components/DeviceFrame';
+import CombinedView from './components/CombinedView';
 import Header from './components/Header';
 import { Device, devices, DeviceType, deviceTypeLabels } from './data/devices';
+
+// View mode type for switching between grid and combined view
+type ViewMode = 'grid' | 'combined';
 
 function App() {
   // URL state
@@ -28,6 +34,9 @@ function App() {
   
   // Filter state - null means show all devices
   const [activeFilter, setActiveFilter] = useState<DeviceType | null>(null);
+
+  // View mode state - grid shows all devices, combined shows phone/desktop/tablet side by side
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   // Get icon component for device type
   const getDeviceIcon = (type: DeviceType) => {
@@ -139,17 +148,49 @@ function App() {
           )}
         </form>
 
-        {/* Device Type Filter Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          <FilterButton type={null} label="All Devices" />
-          <FilterButton type="phone" label={deviceTypeLabels.phone} />
-          <FilterButton type="tablet" label={deviceTypeLabels.tablet} />
-          <FilterButton type="laptop" label={deviceTypeLabels.laptop} />
-          <FilterButton type="desktop" label={deviceTypeLabels.desktop} />
+        {/* View Mode Toggle */}
+        <div className="flex justify-center gap-2 mb-6">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`
+              flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all
+              ${viewMode === 'grid'
+                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white border border-slate-700'
+              }
+            `}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Grid View
+          </button>
+          <button
+            onClick={() => setViewMode('combined')}
+            className={`
+              flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all
+              ${viewMode === 'combined'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white border border-slate-700'
+              }
+            `}
+          >
+            <Layers className="w-4 h-4" />
+            Combined View
+          </button>
         </div>
 
-        {/* Orientation Toggle (for phones/tablets) */}
-        {(activeFilter === 'phone' || activeFilter === 'tablet') && (
+        {/* Device Type Filter Tabs - only show in grid view */}
+        {viewMode === 'grid' && (
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            <FilterButton type={null} label="All Devices" />
+            <FilterButton type="phone" label={deviceTypeLabels.phone} />
+            <FilterButton type="tablet" label={deviceTypeLabels.tablet} />
+            <FilterButton type="laptop" label={deviceTypeLabels.laptop} />
+            <FilterButton type="desktop" label={deviceTypeLabels.desktop} />
+          </div>
+        )}
+
+        {/* Orientation Toggle (for phones/tablets) - only show in grid view */}
+        {viewMode === 'grid' && (activeFilter === 'phone' || activeFilter === 'tablet') && (
           <div className="flex justify-center mb-6">
             <button
               onClick={toggleOrientation}
@@ -229,6 +270,9 @@ function App() {
               />
             </div>
           </div>
+        ) : viewMode === 'combined' ? (
+          /* Combined View - Phone, Desktop, Tablet side by side with 3D perspective */
+          <CombinedView url={currentUrl} />
         ) : (
           /* Device Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -273,8 +317,8 @@ function App() {
           </div>
         )}
 
-        {/* Empty state when no devices match filter */}
-        {filteredDevices.length === 0 && (
+        {/* Empty state when no devices match filter - only in grid view */}
+        {viewMode === 'grid' && filteredDevices.length === 0 && (
           <div className="text-center py-16">
             <p className="text-slate-400">No devices found for this filter.</p>
           </div>
