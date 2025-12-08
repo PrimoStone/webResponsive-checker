@@ -1,21 +1,56 @@
-import React, { useState } from 'react';
-import { MonitorSmartphone, ArrowRight } from 'lucide-react';
+import { useState, FormEvent } from 'react';
+import { 
+  MonitorSmartphone, 
+  ArrowRight, 
+  Smartphone, 
+  Tablet, 
+  Laptop, 
+  Monitor,
+  RotateCw,
+  X,
+  Maximize2,
+  ExternalLink
+} from 'lucide-react';
 import DeviceFrame from './components/DeviceFrame';
 import Header from './components/Header';
-import { Device, devices } from './data/devices';
+import { Device, devices, DeviceType, deviceTypeLabels } from './data/devices';
 
 function App() {
-  const [inputUrl, setInputUrl] = useState('https://stackblitz.com');
-  const [currentUrl, setCurrentUrl] = useState('https://stackblitz.com');
+  // URL state
+  const [inputUrl, setInputUrl] = useState('https://example.com');
+  const [currentUrl, setCurrentUrl] = useState('https://example.com');
+  const [isValidUrl, setIsValidUrl] = useState(true);
+  
+  // Device selection and view state
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isValidUrl, setIsValidUrl] = useState(true);
+  const [isLandscape, setIsLandscape] = useState(false);
+  
+  // Filter state - null means show all devices
+  const [activeFilter, setActiveFilter] = useState<DeviceType | null>(null);
 
+  // Get icon component for device type
+  const getDeviceIcon = (type: DeviceType) => {
+    switch (type) {
+      case 'phone': return Smartphone;
+      case 'tablet': return Tablet;
+      case 'laptop': return Laptop;
+      case 'desktop': return Monitor;
+    }
+  };
+
+  // Filter devices based on active filter
+  const filteredDevices = activeFilter 
+    ? devices.filter(d => d.type === activeFilter)
+    : devices;
+
+  // Handle device card click - open fullscreen preview
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
     setIsFullscreen(true);
   };
 
+  // Validate URL format
   const validateUrl = (url: string) => {
     try {
       new URL(url);
@@ -25,7 +60,8 @@ function App() {
     }
   };
 
-  const handleLoadUrl = (e: React.FormEvent) => {
+  // Handle form submission to load new URL
+  const handleLoadUrl = (e: FormEvent) => {
     e.preventDefault();
     if (validateUrl(inputUrl)) {
       setIsValidUrl(true);
@@ -35,15 +71,43 @@ function App() {
     }
   };
 
+  // Toggle landscape/portrait orientation
+  const toggleOrientation = () => {
+    setIsLandscape(!isLandscape);
+  };
+
+  // Filter button component for device types
+  const FilterButton = ({ type, label }: { type: DeviceType | null; label: string }) => {
+    const isActive = activeFilter === type;
+    const Icon = type ? getDeviceIcon(type) : null;
+    
+    return (
+      <button
+        onClick={() => setActiveFilter(type)}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all
+          ${isActive 
+            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' 
+            : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white'
+          }
+        `}
+      >
+        {Icon && <Icon className="w-4 h-4" />}
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <form onSubmit={handleLoadUrl} className="max-w-2xl mx-auto mb-12">
-          <div className="flex flex-col gap-2">
+        {/* URL Input Form */}
+        <form onSubmit={handleLoadUrl} className="max-w-3xl mx-auto mb-8">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <MonitorSmartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <MonitorSmartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="url"
                 value={inputUrl}
@@ -51,54 +115,168 @@ function App() {
                   setInputUrl(e.target.value);
                   setIsValidUrl(true);
                 }}
-                placeholder="Enter website URL (e.g., https://stackblitz.com)"
-                className={`w-full pl-12 pr-4 py-3 bg-slate-800/50 border ${
-                  isValidUrl ? 'border-slate-700' : 'border-red-500'
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-400`}
+                placeholder="Enter website URL (e.g., https://example.com)"
+                className={`
+                  w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 
+                  text-white placeholder-slate-400 transition-all
+                  ${isValidUrl ? 'border-slate-700' : 'border-red-500'}
+                `}
               />
             </div>
-            {!isValidUrl && (
-              <p className="text-red-400 text-sm">Please enter a valid URL (e.g., https://stackblitz.com)</p>
-            )}
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center gap-2 font-medium transition-colors justify-center"
+              className="px-8 py-3.5 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center gap-2 font-semibold transition-all hover:shadow-lg hover:shadow-blue-500/25 justify-center"
             >
-              Load Website
+              Load
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+          {!isValidUrl && (
+            <p className="text-red-400 text-sm mt-2 ml-1">
+              Please enter a valid URL including https://
+            </p>
+          )}
         </form>
 
-        {isFullscreen && selectedDevice ? (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        {/* Device Type Filter Tabs */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <FilterButton type={null} label="All Devices" />
+          <FilterButton type="phone" label={deviceTypeLabels.phone} />
+          <FilterButton type="tablet" label={deviceTypeLabels.tablet} />
+          <FilterButton type="laptop" label={deviceTypeLabels.laptop} />
+          <FilterButton type="desktop" label={deviceTypeLabels.desktop} />
+        </div>
+
+        {/* Orientation Toggle (for phones/tablets) */}
+        {(activeFilter === 'phone' || activeFilter === 'tablet') && (
+          <div className="flex justify-center mb-6">
             <button
-              onClick={() => setIsFullscreen(false)}
-              className="absolute top-4 right-4 px-4 py-2 bg-slate-800 rounded-lg text-white/60 hover:text-white hover:bg-slate-700 transition-colors"
+              onClick={toggleOrientation}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all
+                ${isLandscape 
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
+                  : 'bg-slate-800/50 text-slate-400 hover:text-white'
+                }
+              `}
             >
-              Close Preview
+              <RotateCw className={`w-4 h-4 transition-transform ${isLandscape ? 'rotate-90' : ''}`} />
+              {isLandscape ? 'Landscape Mode' : 'Portrait Mode'}
             </button>
-            <DeviceFrame device={selectedDevice} url={currentUrl} isFullscreen />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {devices.map((device) => (
-              <div
-                key={device.name}
-                onClick={() => handleDeviceClick(device)}
-                className="group cursor-pointer bg-slate-800/30 rounded-xl p-6 hover:bg-slate-800/50 transition-colors"
-              >
-                <DeviceFrame device={device} url={currentUrl} />
-                <div className="mt-4 text-center">
-                  <h3 className="text-lg font-semibold group-hover:text-blue-400 transition-colors">
-                    {device.name}
-                  </h3>
+        )}
+
+        {/* Fullscreen Preview Modal */}
+        {isFullscreen && selectedDevice ? (
+          <div className="fixed inset-0 bg-black/95 z-50 flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-800">
+              <div className="flex items-center gap-4">
+                {(() => {
+                  const Icon = getDeviceIcon(selectedDevice.type);
+                  return <Icon className="w-5 h-5 text-blue-400" />;
+                })()}
+                <div>
+                  <h2 className="font-semibold text-white">{selectedDevice.name}</h2>
                   <p className="text-slate-400 text-sm">
-                    {device.width} × {device.height}
+                    {isLandscape ? selectedDevice.height : selectedDevice.width} × {isLandscape ? selectedDevice.width : selectedDevice.height}
                   </p>
                 </div>
               </div>
-            ))}
+              
+              <div className="flex items-center gap-2">
+                {/* Orientation toggle in fullscreen */}
+                {(selectedDevice.type === 'phone' || selectedDevice.type === 'tablet') && (
+                  <button
+                    onClick={toggleOrientation}
+                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    title="Toggle orientation"
+                  >
+                    <RotateCw className={`w-5 h-5 transition-transform ${isLandscape ? 'rotate-90' : ''}`} />
+                  </button>
+                )}
+                
+                {/* Open in new tab */}
+                <a
+                  href={currentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                </a>
+                
+                {/* Close button */}
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  title="Close preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Fullscreen Device Frame */}
+            <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+              <DeviceFrame 
+                device={selectedDevice} 
+                url={currentUrl} 
+                isFullscreen 
+                isLandscape={isLandscape}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Device Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredDevices.map((device) => {
+              const Icon = getDeviceIcon(device.type);
+              // Only apply landscape to phones and tablets in grid view
+              const showLandscape = isLandscape && (device.type === 'phone' || device.type === 'tablet');
+              
+              return (
+                <div
+                  key={device.name}
+                  onClick={() => handleDeviceClick(device)}
+                  className="group cursor-pointer bg-slate-800/30 rounded-2xl p-5 hover:bg-slate-800/50 transition-all hover:shadow-xl hover:shadow-black/20 border border-slate-700/50 hover:border-blue-500/30"
+                >
+                  {/* Device Preview */}
+                  <div className="flex justify-center items-center min-h-[280px]">
+                    <DeviceFrame 
+                      device={device} 
+                      url={currentUrl} 
+                      isLandscape={showLandscape}
+                    />
+                  </div>
+                  
+                  {/* Device Info */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                        {device.name}
+                      </h3>
+                      <p className="text-slate-400 text-sm">
+                        {showLandscape ? device.height : device.width} × {showLandscape ? device.width : device.height}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-slate-500" />
+                      <Maximize2 className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state when no devices match filter */}
+        {filteredDevices.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-slate-400">No devices found for this filter.</p>
           </div>
         )}
       </main>
