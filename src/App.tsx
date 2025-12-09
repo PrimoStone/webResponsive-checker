@@ -59,6 +59,16 @@ function App() {
     setIsFullscreen(true);
   };
 
+  // Normalize URL - auto-add https:// if protocol is missing
+  const normalizeUrl = (url: string): string => {
+    let normalized = url.trim();
+    // If no protocol, add https://
+    if (normalized && !normalized.match(/^https?:\/\//i)) {
+      normalized = 'https://' + normalized;
+    }
+    return normalized;
+  };
+
   // Validate URL format
   const validateUrl = (url: string) => {
     try {
@@ -72,9 +82,12 @@ function App() {
   // Handle form submission to load new URL
   const handleLoadUrl = (e: FormEvent) => {
     e.preventDefault();
-    if (validateUrl(inputUrl)) {
+    const normalizedUrl = normalizeUrl(inputUrl);
+    
+    if (validateUrl(normalizedUrl)) {
       setIsValidUrl(true);
-      setCurrentUrl(inputUrl);
+      setInputUrl(normalizedUrl); // Update input to show full URL
+      setCurrentUrl(normalizedUrl);
     } else {
       setIsValidUrl(false);
     }
@@ -118,13 +131,13 @@ function App() {
             <div className="relative flex-1">
               <MonitorSmartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
-                type="url"
+                type="text"
                 value={inputUrl}
                 onChange={(e) => {
                   setInputUrl(e.target.value);
                   setIsValidUrl(true);
                 }}
-                placeholder="Enter website URL (e.g., https://example.com)"
+                placeholder="Enter website URL (e.g., example.com)"
                 className={`
                   w-full pl-12 pr-4 py-3.5 bg-slate-800/50 border rounded-xl
                   focus:outline-none focus:ring-2 focus:ring-blue-500 
